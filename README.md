@@ -1,5 +1,5 @@
-# ArduinoMultiStepperControler
-Arduino multi stepper motor controler
+# ArduinoMultiStepperController
+Arduino multi stepper motor controller
 
 Control multiple stepper motors with one Arduino via serial or I2C.
 
@@ -12,4 +12,3 @@ Features:
 * Set ramp down acceleration
 * Query current position
 * Constant rotation mode
-
