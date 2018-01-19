@@ -2,10 +2,6 @@
 
 #include <TimerOne.h>
 #include <Wire.h>
-//#include "U8glib.h"
-
-const int stepPin1 = 8;//only works on this pin right now
-const int dirPin1 = 9;
 
 int latchPin   = 4; //Pin connected to ST_CP of 74HC595
 int myClockPin = 3; //Pin connected to SH_CP of 74HC595
@@ -65,23 +61,22 @@ unsigned long startSpeeds[] = {2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000};
 bool stepperPosChanged[] = {false, false, false, false, false, false, false, false};
 int stepperPosChangedListeners[] = {1, -1, -1, -1, -1, -1, -1, -1};
 
-
+/**
+ * \brief Setup code. This is only ran once after the Arduino is powered up.
+ */
 void setup()
 {
-	// put your setup code here, to run once:
-	pinMode(stepPin1, OUTPUT);
-	pinMode(dirPin1, OUTPUT);
-	//pinMode(actPin, OUTPUT);  hooked to VCC, so no Arduino control
-	pinMode(latchPin, OUTPUT);
+	pinMode(latchPin,   OUTPUT);
 	pinMode(myClockPin, OUTPUT);
-	pinMode(myDataPin, OUTPUT);
+	pinMode(myDataPin,  OUTPUT);
+
 	//Serial.begin(115200); // Seems to not work
 	Serial.begin(9600);
 
 	Serial.println("Ready");
 
-	Timer1.initialize(TIMER_US);                  // Initialise timer 1
-	Timer1.attachInterrupt( timerIsr );           // attach the ISR routine here
+	Timer1.initialize(TIMER_US);         // Initialise timer 1
+	Timer1.attachInterrupt( timerIsr );  // attach the ISR routine here
 
 	// Start the I2C Bus as Slave on address 9
 	Wire.begin(9);
@@ -109,6 +104,7 @@ void receiveEvent(int bytes)
 		const char incomingByte = Wire.read(); // read the incoming byte
 
 		if(isDigit(incomingByte) || incomingByte == '-') { receiveEventBuf[receiveEventindex++] = incomingByte ;}
+
 		else
 		{
 			completeBuffer();
@@ -155,7 +151,7 @@ bool doCommands(const char * command)
 		Serial.println("Help:");
 		Serial.println();
 		Serial.println("Set speed: s <stepper> <speed>");
-		Serial.println("Set mode: s <stepper> <mode>");
+		Serial.println("Set mode: m <stepper> <mode>");
 		Serial.println("Set step mode: sm <stepper> <stepMode>");
 		Serial.println("Set position: p <stepper> <position>");
 		Serial.println("Get position: gp <stepper>");
@@ -342,13 +338,6 @@ void stepperRotate()
 
 	counter += TIMER_US;
 
-	byte out1 = 0;
-	byte out2 = 0;
-	byte out3 = 0;
-	byte out4 = 0;
-	byte out5 = 0;
-	byte out6 = 0;
-
 	bool newState = false;
 
 	for(int i = 0; i < 8; ++i)
@@ -407,7 +396,9 @@ void stepperRotate()
 		if(diff <= speeds[i]) { continue ;}
 
 		stepperPosChanged[i] = true;
+
 		times[i] = counter;
+
 		switch(modes[i]) // Try to move this code above, or combine it
 		{
 			case MODE_CONSTANT:
@@ -440,6 +431,7 @@ void stepperRotate()
 			}
 
 			newState = true;
+
 			break;
 		}
 	}
@@ -453,61 +445,68 @@ void stepperRotate()
 		return;
 	}
 
+	byte out1 = 0;
+	byte out2 = 0;
+	byte out3 = 0;
+	byte out4 = 0;
+	byte out5 = 0;
+	byte out6 = 0;
+
 	out6 |= !enabledState[7] << 0; // EN 7
-	out6 |= stepModes[7][0] << 1; // M0 7
-	out6 |= stepModes[7][1] << 2; // M1 7
-	out6 |= stepModes[7][2] << 3; // M2 7
-	out6 |= states[7] << 4; // Spt 7
-	out6 |= directions[7] << 5; // Dir 7
+	out6 |= stepModes[7][0] << 1;  // M0 7
+	out6 |= stepModes[7][1] << 2;  // M1 7
+	out6 |= stepModes[7][2] << 3;  // M2 7
+	out6 |= states[7] << 4;        // Spt 7
+	out6 |= directions[7] << 5;    // Dir 7
 
 	out1 |= !enabledState[6] << 2; // EN 6
-	out1 |= stepModes[6][0] << 3; // M0 6
-	out1 |= stepModes[6][1] << 4; // M1 6
-	out1 |= stepModes[6][2] << 5; // M2 6
-	out1 |= states[6] << 6; // Stp 6
-	out1 |= directions[6] << 7; //
+	out1 |= stepModes[6][0] << 3;  // M0 6
+	out1 |= stepModes[6][1] << 4;  // M1 6
+	out1 |= stepModes[6][2] << 5;  // M2 6
+	out1 |= states[6] << 6;        // Stp 6
+	out1 |= directions[6] << 7;    //
 
-	out2 |= stepModes[2][2] << 0; // M2 2
-	out2 |= stepModes[2][1] << 1; // M1 2
-	out2 |= stepModes[2][0] << 2; // M0 2
+	out2 |= stepModes[2][2] << 0;  // M2 2
+	out2 |= stepModes[2][1] << 1;  // M1 2
+	out2 |= stepModes[2][0] << 2;  // M0 2
 	out2 |= !enabledState[2] << 3; // EN 2
-	out3 |= states[2] << 7; // Stp 2
-	out3 |= directions[2] << 6; // Dir 2
+	out3 |= states[2] << 7;        // Stp 2
+	out3 |= directions[2] << 6;    // Dir 2
 
 	out2 |= !enabledState[5] << 4; // EN 5
-	out2 |= stepModes[5][0] << 5; // M0 5
-	out2 |= stepModes[5][1] << 6; // M1 5
-	out2 |= stepModes[5][2] << 7; // M2 5
-	out1 |= states[5] << 0; // Stp 5
-	out1 |= directions[5] << 1; // Dir 5
+	out2 |= stepModes[5][0] << 5;  // M0 5
+	out2 |= stepModes[5][1] << 6;  // M1 5
+	out2 |= stepModes[5][2] << 7;  // M2 5
+	out1 |= states[5] << 0;        // Stp 5
+	out1 |= directions[5] << 1;    // Dir 5
 
 	out3 |= !enabledState[3] << 5; // EN 3
-	out3 |= stepModes[3][0] << 4; // M0 3
-	out3 |= stepModes[3][1] << 3; // M1 3
-	out3 |= stepModes[3][2] << 2; // M2 3
-	out3 |= states[3] << 1; // Stp 3
-	out3 |= directions[3] << 0; // Dir 3
+	out3 |= stepModes[3][0] << 4;  // M0 3
+	out3 |= stepModes[3][1] << 3;  // M1 3
+	out3 |= stepModes[3][2] << 2;  // M2 3
+	out3 |= states[3] << 1;        // Stp 3
+	out3 |= directions[3] << 0;    // Dir 3
 
 	out4 |= !enabledState[0] << 7; // EN 0
-	out4 |= stepModes[0][0] << 6; // M0 0
-	out4 |= stepModes[0][1] << 5; // M1 0
-	out4 |= stepModes[0][2] << 4; // M2 0
-	out4 |= states[0] << 3; // Stp 0
-	out4 |= directions[0] << 2; // Dir 0
+	out4 |= stepModes[0][0] << 6;  // M0 0
+	out4 |= stepModes[0][1] << 5;  // M1 0
+	out4 |= stepModes[0][2] << 4;  // M2 0
+	out4 |= states[0] << 3;        // Stp 0
+	out4 |= directions[0] << 2;    // Dir 0
 
 	out4 |= !enabledState[1] << 1; // EN 1
-	out4 |= stepModes[1][0] << 0; // M0 1
-	out5 |= stepModes[1][1] << 7; // M1 1
-	out5 |= stepModes[1][2] << 6; // M2 1
-	out5 |= states[1] << 5; // Stp 1
-	out5 |= directions[1] << 4; // Dir 1
+	out4 |= stepModes[1][0] << 0;  // M0 1
+	out5 |= stepModes[1][1] << 7;  // M1 1
+	out5 |= stepModes[1][2] << 6;  // M2 1
+	out5 |= states[1] << 5;        // Stp 1
+	out5 |= directions[1] << 4;    // Dir 1
 
 	out5 |= !enabledState[4] << 3; // EN 4
-	out5 |= stepModes[4][0] << 2; // M0 4
-	out5 |= stepModes[4][1] << 1; // M1 4
-	out5 |= stepModes[4][2] << 0; // M2 4
-	out6 |= states[4] << 7; // Stp 4
-	out6 |= directions[4] << 6; // Dir 4
+	out5 |= stepModes[4][0] << 2;  // M0 4
+	out5 |= stepModes[4][1] << 1;  // M1 4
+	out5 |= stepModes[4][2] << 0;  // M2 4
+	out6 |= states[4] << 7;        // Stp 4
+	out6 |= directions[4] << 6;    // Dir 4
 
 	PORTD &= ~(1 << latchPin);
 	shiftOut(out1);

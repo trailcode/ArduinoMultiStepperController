@@ -12,3 +12,9 @@ Features:
 * Set ramp down acceleration
 * Query current position
 * Constant rotation mode
+
+Hardware:
+
+* Arduino Pro Mini or similar
+* 74HC595 Shift Registers
+* DRV8825 StepStick 3D Printer Stepper Motor Driver
