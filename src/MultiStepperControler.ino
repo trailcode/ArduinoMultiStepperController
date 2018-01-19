@@ -11,6 +11,16 @@ int latchPin   = 4; //Pin connected to ST_CP of 74HC595
 int myClockPin = 3; //Pin connected to SH_CP of 74HC595
 int myDataPin  = 2; //Pin connected to DS    of 74HC595
 
+unsigned int index = 0;
+unsigned int counter = 0;
+
+uint8_t draw_state = 0;
+
+char buffer[256];
+bool ready = false;
+
+int cnt = 0;
+
 void stepperRotate(float rotation, float rpm);
 
 enum
@@ -21,7 +31,8 @@ enum
 
 enum ACCEL_STATE
 {
-	RAMP_UP = 0,
+	INITAL=0,
+	RAMP_UP,
 	CONSTANT,
 	RAMP_DOWN,
 };
@@ -33,14 +44,18 @@ enum
 };
 //char modes[] = {MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT,MODE_CONSTANT};
 char modes[] = {MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION,MODE_SET_POSITION};
-char accelState[] = {RAMP_UP,RAMP_UP,RAMP_UP,RAMP_UP,RAMP_UP,RAMP_UP,RAMP_UP,RAMP_UP};
+char accelState[] = {INITAL,INITAL,INITAL,INITAL,INITAL,INITAL,INITAL,INITAL};
 char directions[] = {DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD,DIRECTION_FORWARD};
 long positions[] = {0,0,0,0,0,0,0,0};
 long destPositions[] = {0,0,0,0,0,0,0,0};
 bool changing[] = {0,0,0,0,0,0,0,0};
-bool enabledState[] = {1,1,0,0,0,0,0,0};
+bool enabledState[] = {1,0,0,0,0,0,0,0};
 unsigned int times[] = {0,0,0,0,0,0,0,0};
 unsigned long speeds[] = {1000, 600, 600, 600, 600, 600, 600, 600};
+
+long initalRampSpeed = 10000;
+
+long rampSpeeds[] = {initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed};
 bool states[] = {1,1,1,1,1,1,1,1};
 bool stepModes[8][3] = {{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
 unsigned long startSpeeds[] = {2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000};
@@ -120,16 +135,6 @@ void receiveEvent(int bytes)
 }
 
 void timerIsr() { stepperRotate() ;}
-
-unsigned int index = 0;
-unsigned int counter = 0;
-
-uint8_t draw_state = 0;
-
-char buffer[256];
-bool ready = false;
-
-int cnt = 0;
 
 void p(char * buf, char *fmt, ... )
 {
@@ -353,11 +358,57 @@ void stepperRotate()
 		unsigned int diff = counter - times[i];
 		if(!enabledState[i]) { continue ;}
 		//if(diff > speeds[i] || states[i])
+
+		if(positions[i] == destPositions[i])
+		{
+			accelState[i] = INITAL;
+
+			rampSpeeds[i] = initalRampSpeed;
+
+			continue;
+		} // Breaks constant rotation
+
+		switch(accelState[i])
+		{
+			case INITAL:
+
+				accelState[i] = RAMP_UP;
+
+				goto doContinue;
+
+
+			case RAMP_UP:
+
+				rampSpeeds[i] -= 10;
+
+				if(rampSpeeds[i] < 0)
+				{
+					accelState[i] = CONSTANT;
+
+					goto doContinue;
+				}
+
+				if(diff <= rampSpeeds[i])
+				{
+					continue;
+				}
+
+				break;
+
+			case CONSTANT:
+				break;
+
+			case RAMP_DOWN:
+				break;
+		}
+
+		doContinue:
+
 		if(diff <= speeds[i]) { continue ;}
 
 		stepperPosChanged[i] = true;
 		times[i] = counter;
-		switch(modes[i])
+		switch(modes[i]) // Try to move this code above, or combine it
 		{
 			case MODE_CONSTANT:
 			states[i] = !states[i];
@@ -370,8 +421,9 @@ void stepperRotate()
 			{
 				if(positions[i] == destPositions[i])
 				{
-				states[i] = 0;
-				break;
+					states[i] = 0; // Does it get here?
+
+					break;
 				}
 				if(positions[i] - destPositions[i] > 0)
 				{
