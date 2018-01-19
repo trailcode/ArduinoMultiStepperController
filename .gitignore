@@ -4,3 +4,5 @@
 .gcc-flags.json
 .travis.yml
 src/MultiStepperControler.ino.cpp
+lib/readme.txt
+platformio.ini
