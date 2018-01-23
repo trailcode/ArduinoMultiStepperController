@@ -6,3 +6,7 @@
 src/MultiStepperControler.ino.cpp
 lib/readme.txt
 platformio.ini
+.idea/MultiStepperController.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/workspace.xml
