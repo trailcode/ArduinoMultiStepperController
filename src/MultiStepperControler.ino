@@ -52,6 +52,7 @@ unsigned long speeds[] = {1000, 600, 600, 600, 600, 600, 600, 600};
 long initalRampSpeed = 10000;
 
 long rampSpeeds[] = {initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed,initalRampSpeed};
+long currRampSpeeds[] = {rampSpeeds[0],rampSpeeds[1],rampSpeeds[2],rampSpeeds[3],rampSpeeds[4],rampSpeeds[5],rampSpeeds[6],rampSpeeds[7]};
 bool states[] = {1,1,1,1,1,1,1,1};
 bool stepModes[8][3] = {{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
 unsigned long startSpeeds[] = {2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000};
@@ -345,6 +346,7 @@ void stepperRotate()
 		if(changing[i]) { continue ;}
 		//unsigned long diff = counter - times[i];
 		unsigned int diff = counter - times[i];
+
 		if(!enabledState[i]) { continue ;}
 		//if(diff > speeds[i] || states[i])
 
@@ -368,16 +370,16 @@ void stepperRotate()
 
 			case RAMP_UP:
 
-				rampSpeeds[i] -= 10;
+				currRampSpeeds[i] -= 10;
 
-				if(rampSpeeds[i] < 0)
+				if(currRampSpeeds[i] < 0)
 				{
 					accelState[i] = CONSTANT;
 
 					goto doContinue;
 				}
 
-				if(diff <= rampSpeeds[i])
+				if(diff <= currRampSpeeds[i])
 				{
 					continue;
 				}
@@ -385,9 +387,39 @@ void stepperRotate()
 				break;
 
 			case CONSTANT:
+			{
+				long posDiff = abs(positions[i] - destPositions[i]);
+
+				//if(posDiff < initalRampSpeed)
+				if(posDiff < 50)
+				{
+					accelState[i] = RAMP_DOWN;
+					//Serial.println(posDiff);
+					currRampSpeeds[i] == speeds[i];
+
+				}
+
 				break;
+			}
 
 			case RAMP_DOWN:
+
+				if(currRampSpeeds[i] > initalRampSpeed)
+				{
+					//accelState[i] = CONSTANT;
+
+					//goto doContinue;
+				}
+				else
+				{
+					currRampSpeeds[i] += 10;
+				}
+
+				if(diff <= currRampSpeeds[i])
+				{
+					continue;
+				}
+
 				break;
 		}
 
