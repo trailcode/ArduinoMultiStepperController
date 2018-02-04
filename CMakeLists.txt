@@ -3,7 +3,7 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/ArduinoToolchain.cmake)
 set(PROJECT_NAME ArdunioTest)
 project(${PROJECT_NAME})
 
-set(${CMAKE_PROJECT_NAME}_SKETCH ArdunioTest.ino)
+set(${CMAKE_PROJECT_NAME}_SKETCH src/MultiStepperControler.ino)
 link_directories(/Users/trailcode/Documents/Arduino/libraries)
 #### Uncomment below additional settings as needed.
 set(${CMAKE_PROJECT_NAME}_BOARD mega)
