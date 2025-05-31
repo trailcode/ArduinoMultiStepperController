@@ -1,6 +1,8 @@
 # ArduinoMultiStepperController
 Arduino multi stepper motor controller
 
+[![Watch demo video](https://img.youtube.com/vi/ITcux-GEiFo/maxresdefault.jpg)](https://www.youtube.com/watch?v=ITcux-GEiFo)
+
 Control multiple stepper motors with one Arduino via serial or I2C.
 
 Features:
